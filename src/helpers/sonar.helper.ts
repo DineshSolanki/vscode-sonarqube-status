@@ -120,54 +120,17 @@ export async function getMetrics(config: Config) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = JSON.parse(text) as SonarResponse;
-      
-      if (data?.component?.measures) {
-        // Convert the response to match what the SDK expects
-        const measures = data.component.measures.map(m => ({
-          metric: m.metric,
-          value: m.value,
-          bestValue: m.bestValue
-        }));
-
-        // Create metrics metadata from the measures
-        const metrics = METRICS_TO_FETCH.map(key => {
-          const measure = measures.find(m => m.metric === key);
-          const type = measure?.value.includes('.') ? 'PERCENT' : 
-                      key === 'alert_status' ? 'LEVEL' :
-                      ['security_review_rating', 'sqale_rating'].includes(key) ? 'RATING' : 'INT';
-          
-          // Determine domain based on metric key
-          const domain = key === 'alert_status' ? 'Releasability' :
-                        key.includes('security') ? 'Security' :
-                        key === 'bugs' ? 'Reliability' :
-                        key.includes('duplicated') ? 'Duplications' :
-                        key === 'code_smells' || key === 'sqale_rating' ? 'Maintainability' :
-                        key === 'ncloc' ? 'Size' : 'Issues';
-
-          return {
-            key,
-            name: key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-            type,
-            domain,
-            description: `Metric: ${key}`,
-            qualitative: type === 'RATING' || type === 'LEVEL',
-            hidden: false,
-            direction: key.includes('rating') || key === 'coverage' ? 1 : -1,
-            higherValuesAreBetter: key.includes('rating') || key === 'coverage',
-            custom: false // Required by ComponentMetric type
-          };
-        });
-
-        channel.appendLine('Successfully parsed response');
-        channel.appendLine(`Found ${measures.length} measures`);
+      try {
+        const data = JSON.parse(text);
+        channel.appendLine('Successfully parsed JSON response');
         
-        const parsed = parseResponse(measures, metrics);
-        return parsed;
+        // Return the raw response data instead of transforming it
+        return data;
+
+      } catch (parseError) {
+        channel.appendLine('Failed to parse JSON response:');
+        throw parseError;
       }
-      
-      channel.appendLine('No measures found in response');
-      return null;
     }
     channel.appendLine('No SonarQube client available');
     return null;
