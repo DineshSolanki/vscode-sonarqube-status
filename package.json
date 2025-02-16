@@ -1,6 +1,6 @@
 {
   "name": "sonarqube-status-plus",
-  "displayName": "SonarQube Project Status Plus",
+  "displayName": "SonarQube Insights for VS Code",
   "description": "Get the status of your project including the Build status, Static code analysis statuses and more... (Maintained fork of sonarqube-status)",
   "version": "1.0.0",
   "engines": {
