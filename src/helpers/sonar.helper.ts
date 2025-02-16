@@ -8,13 +8,27 @@ import { Config } from '../interfaces/config.interface';
 import { isConfigured } from './file.helpers';
 
 let client: Client | null = null;
+let outputChannel: vscode.OutputChannel;
+
+function getOutputChannel() {
+  if (!outputChannel) {
+    outputChannel = vscode.window.createOutputChannel('SonarQube Status Debug');
+  }
+  return outputChannel;
+}
 
 export const sonarSDKClient = (config: Config) => {
+  const channel = getOutputChannel();
+  channel.appendLine('\n=== Initializing SonarQube Client ===');
+  
   if (client) {
+    channel.appendLine('Using existing client instance');
     return client;
   }
+
   const { isConfigured: configured, authType } = isConfigured(config);
   if (!configured) {
+    channel.appendLine('Error: Not configured properly');
     throw new Error('Not configured');
   }
 
@@ -38,33 +52,132 @@ export const sonarSDKClient = (config: Config) => {
 
   const auth = getAuthConfig[authType]();
   if (!auth) {
+    channel.appendLine('Error: Authentication not configured properly');
     throw new Error('Auth not configured');
   }
+  
   try {
+    channel.appendLine(`Connecting to SonarQube at: ${config.sonarURL}`);
+    channel.appendLine(`Using auth type: ${authType}`);
+    
+    // Initialize the client
     client = new Client({ url: config.sonarURL, auth });
+    channel.appendLine('SonarQube client initialized successfully');
     return client;
   } catch (error: any) {
-    vscode.window.showErrorMessage(error?.message);
-    return null;
+    channel.appendLine(`Error creating SonarQube client: ${error?.message || 'Unknown error'}`);
+    if (error?.stack) {
+      channel.appendLine('Stack trace:');
+      channel.appendLine(error.stack);
+    }
+    throw error;
   }
 };
 
+interface SonarResponse {
+  component: {
+    key: string;
+    name: string;
+    qualifier: string;
+    measures: Array<{
+      metric: string;
+      value: string;
+      bestValue?: boolean;
+    }>;
+  };
+}
+
 export async function getMetrics(config: Config) {
+  const channel = getOutputChannel();
+  channel.appendLine('\n=== Fetching SonarQube Metrics ===');
+  channel.show(true);
+  
   try {
     const sonarClient = sonarSDKClient(config);
     if (sonarClient) {
-      const data = await sonarClient.measures.component({
-        component: config.project,
-        additionalFields: [MeasuresRequest.MeasuresRequestAdditionalField.metrics],
-        metricKeys: METRICS_TO_FETCH,
+      channel.appendLine(`Fetching measures for project: ${config.project}`);
+      channel.appendLine(`Metrics to fetch: ${METRICS_TO_FETCH.join(', ')}`);
+      
+      // Make direct fetch call since the SDK doesn't handle the response format correctly
+      const authHeader = config.auth?.token 
+        ? `Basic ${Buffer.from(config.auth.token + ':').toString('base64')}`
+        : `Basic ${Buffer.from(config.auth?.username + ':' + config.auth?.password).toString('base64')}`;
+      
+      const response = await fetch(`${config.sonarURL}/api/measures/component?component=${config.project}&metricKeys=${METRICS_TO_FETCH.join(',')}`, {
+        headers: {
+          'Authorization': authHeader,
+          'Accept': 'application/json'
+        }
       });
-      if (data && data.metrics) {
-        return parseResponse(data.component.measures, data?.metrics);
+      
+      channel.appendLine(`API call status: ${response.status}`);
+      const text = await response.text();
+      channel.appendLine('Raw API response:');
+      channel.appendLine(text);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const data = JSON.parse(text) as SonarResponse;
+      
+      if (data?.component?.measures) {
+        // Convert the response to match what the SDK expects
+        const measures = data.component.measures.map(m => ({
+          metric: m.metric,
+          value: m.value,
+          bestValue: m.bestValue
+        }));
+
+        // Create metrics metadata from the measures
+        const metrics = METRICS_TO_FETCH.map(key => {
+          const measure = measures.find(m => m.metric === key);
+          const type = measure?.value.includes('.') ? 'PERCENT' : 
+                      key === 'alert_status' ? 'LEVEL' :
+                      ['security_review_rating', 'sqale_rating'].includes(key) ? 'RATING' : 'INT';
+          
+          // Determine domain based on metric key
+          const domain = key === 'alert_status' ? 'Releasability' :
+                        key.includes('security') ? 'Security' :
+                        key === 'bugs' ? 'Reliability' :
+                        key.includes('duplicated') ? 'Duplications' :
+                        key === 'code_smells' || key === 'sqale_rating' ? 'Maintainability' :
+                        key === 'ncloc' ? 'Size' : 'Issues';
+
+          return {
+            key,
+            name: key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+            type,
+            domain,
+            description: `Metric: ${key}`,
+            qualitative: type === 'RATING' || type === 'LEVEL',
+            hidden: false,
+            direction: key.includes('rating') || key === 'coverage' ? 1 : -1,
+            higherValuesAreBetter: key.includes('rating') || key === 'coverage',
+            custom: false // Required by ComponentMetric type
+          };
+        });
+
+        channel.appendLine('Successfully parsed response');
+        channel.appendLine(`Found ${measures.length} measures`);
+        
+        const parsed = parseResponse(measures, metrics);
+        return parsed;
+      }
+      
+      channel.appendLine('No measures found in response');
+      return null;
     }
+    channel.appendLine('No SonarQube client available');
     return null;
-  } catch (error) {
-    return null;
+  } catch (error: any) {
+    channel.appendLine('Error fetching metrics:');
+    channel.appendLine(error?.message || 'Unknown error');
+    if (error?.stack) {
+      channel.appendLine('Stack trace:');
+      channel.appendLine(error.stack);
+    }
+    throw error;
   }
 }
 
@@ -80,7 +193,13 @@ function parseResponse(
     meta: metricsMeta[item.metric],
     label: metricsMeta[item.metric].name,
     type: metricsMeta[item.metric].type,
-    domain: metricsMeta[item.metric].domain,
+    domain: item.metric === 'alert_status' ? 'Releasability' :
+            item.metric.includes('security') ? 'Security' :
+            item.metric === 'bugs' ? 'Reliability' :
+            item.metric.includes('duplicated') ? 'Duplications' :
+            item.metric === 'code_smells' || item.metric === 'sqale_rating' ? 'Maintainability' :
+            item.metric === 'ncloc' ? 'Size' :
+            'Issues',
     value: addFormatting(item.value, metricsMeta[item.metric]),
   }));
 
