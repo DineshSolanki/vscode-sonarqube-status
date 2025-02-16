@@ -20,12 +20,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Set OpenSSL legacy provider
-        run: echo "NODE_OPTIONS=--openssl-legacy-provider" >> $GITHUB_ENV
-        
       - name: Build and Package Extension
         run: |
-          npm run compile
+          export NODE_OPTIONS=""
+          node --openssl-legacy-provider ./node_modules/.bin/webpack --mode none
           npm run package
           
       - name: Publish to Visual Studio Marketplace
