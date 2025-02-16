@@ -4,6 +4,21 @@ import { checkAndCreateConfigFileIfNeeded } from './helpers/file.helpers';
 import { getMetrics } from './helpers/sonar.helper';
 import { SonarQuickStatsProvider } from './views/quick-stats.webview';
 
+interface SonarMeasure {
+  metric: string;
+  value: string;
+  bestValue?: boolean;
+}
+
+interface SonarResponse {
+  component: {
+    key: string;
+    name: string;
+    qualifier: string;
+    measures: SonarMeasure[];
+  };
+}
+
 let outputChannel: vscode.OutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -14,24 +29,34 @@ export function activate(context: vscode.ExtensionContext) {
   
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   statusBarItem.command = COMMANDS.getStatus;
+  
+  // Initialize the webview provider
   const quickInfoProvider = new SonarQuickStatsProvider(context.extensionUri);
-  const quickInfoWebView = vscode.window.registerWebviewViewProvider(
-    'sonarqubeStatus.quickInfo',
-    quickInfoProvider
-  );
   context.subscriptions.push(
-    vscode.commands.registerCommand(COMMANDS.getStatus, getStatusWithProgress)
+    vscode.window.registerWebviewViewProvider('sonarqubeStatus.quickInfo', quickInfoProvider, {
+      webviewOptions: {
+        retainContextWhenHidden: true  // Keep the webview's state even when hidden
+      }
+    })
   );
+
+  // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand(COMMANDS.refresh, getStatusWithProgress)
+    vscode.commands.registerCommand(COMMANDS.getStatus, () => getStatusWithProgress(quickInfoProvider, statusBarItem)),
+    vscode.commands.registerCommand(COMMANDS.refresh, () => getStatusWithProgress(quickInfoProvider, statusBarItem))
   );
-  context.subscriptions.push(quickInfoWebView);
+
   context.subscriptions.push(statusBarItem);
   context.subscriptions.push(outputChannel);
 
+  // Initial status check after a short delay to ensure webview is ready
+  setTimeout(() => {
+    getStatusWithProgress(quickInfoProvider, statusBarItem);
+  }, 1000);
+
   async function getSonarQubeStatus() {
-    outputChannel.clear(); // Clear previous output
-    outputChannel.show(true); // Make sure it's visible
+    outputChannel.clear();
+    outputChannel.show(true);
     outputChannel.appendLine('=== Starting SonarQube Status Check ===');
     
     const workspace = vscode.workspace.workspaceFolders;
@@ -51,25 +76,28 @@ export function activate(context: vscode.ExtensionContext) {
           outputChannel.appendLine('Configuration found, fetching metrics...');
           outputChannel.appendLine(`Project: ${config.project}`);
           outputChannel.appendLine(`SonarQube URL: ${config.sonarURL}`);
-          outputChannel.appendLine(`Auth type: ${config.auth?.token ? 'token' : 'username/password'}`);
           
           const data = await getMetrics(config);
-          outputChannel.appendLine(data ? 'Successfully received metrics data' : 'No data received from SonarQube');
+          outputChannel.appendLine('Raw response data:');
+          outputChannel.appendLine(JSON.stringify(data, null, 2));
           
-          if (data) {
+          if (data?.component?.measures) {
+            outputChannel.appendLine(`Found ${data.component.measures.length} measures`);
+            
+            // Pass the raw measures and component info
             quickInfoProvider.updateMeasures(
-              [
-                ...(data['Reliability'] || []),
-                ...(data['Security'] || []),
-                ...(data['SecurityReview'] || []),
-                ...(data['Maintainability'] || []),
-                ...(data['Duplications'] || []),
-                ...(data['Issues'] || []),
-                ...(data['Size'] || []),
-              ],
-              data['Releasability']?.[0]
+              data.component.measures,
+              {
+                component: {
+                  key: data.component.key,
+                  name: data.component.name || config.project,
+                  qualifier: data.component.qualifier || 'TRK',
+                  measures: data.component.measures
+                }
+              }
             );
-            const status = data['Releasability']?.[0]?.value;
+
+            const status = data.component.measures.find((m: SonarMeasure) => m.metric === 'alert_status')?.value;
             outputChannel.appendLine(`Quality gate status: ${status || 'unknown'}`);
             
             let statusBarText = null;
@@ -85,7 +113,11 @@ export function activate(context: vscode.ExtensionContext) {
               statusBarItem.hide();
             }
           } else {
-            const msg = 'No data received from SonarQube. Please check your project key and credentials.';
+            outputChannel.appendLine('No measures found in response');
+            outputChannel.appendLine('Response structure:');
+            outputChannel.appendLine(JSON.stringify(Object.keys(data || {}), null, 2));
+            
+            const msg = 'No measures received from SonarQube. Please check your project key and credentials.';
             outputChannel.appendLine(msg);
             vscode.window.showErrorMessage(msg);
             quickInfoProvider.updateMeasures([], null);
@@ -108,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  function getStatusWithProgress() {
+  function getStatusWithProgress(quickInfoProvider: SonarQuickStatsProvider, statusBarItem: vscode.StatusBarItem) {
     outputChannel.show();
     outputChannel.appendLine('\n--- Refreshing SonarQube Status ---');
     vscode.window.withProgress(
@@ -124,9 +156,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
   }
-
-  // Trigger initial status check on activation
-  getStatusWithProgress();
 }
 
 export function deactivate() {}

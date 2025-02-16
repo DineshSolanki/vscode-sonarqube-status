@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body {
@@ -14,49 +15,588 @@ body {
 
 .measures,
 .quality-gate {
-  padding: 0.5rem;
-}
-h2 {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  background-color: var(--vscode-editor-background);
 }
 
-.measures {
+h2 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--vscode-editor-foreground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 0.5rem;
 }
 
 .quality-gate__badge {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
-  padding: 0.2rem 0.5rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  animation: slideIn 0.5s ease-out;
+  cursor: pointer;
 }
-.quality-gate__pass svg {
-  color: rgb(18, 143, 18);
+
+.quality-gate__badge:hover {
+  transform: translateY(-2px);
 }
+
+.quality-gate__badge:hover .quality-gate__details {
+  text-decoration: underline;
+}
+
+.quality-gate__pass {
+  background-color: var(--vscode-testing-iconPassed);
+  color: var(--vscode-editor-background);
+  box-shadow: 0 2px 8px rgba(0, 255, 0, 0.1);
+}
+
+.quality-gate__fail {
+  background-color: var(--vscode-testing-iconFailed);
+  color: var(--vscode-editor-background);
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.2);
+  animation: pulse-attention 2s infinite;
+}
+
 .quality-gate__fail svg {
-  color: rgb(169, 40, 40);
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Make the failing gate more prominent */
+.quality-gate__fail::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scaleX(0);
+  animation: scan 2s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0% { transform: scaleX(0); opacity: 0; }
+  50% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(0); opacity: 0; }
 }
 
 .quick-stats__list {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
 }
 
 .quick-stats__list-item {
-  padding: 0.5rem;
-  border: 1px solid;
+  padding: 1.2rem;
+  border-radius: 6px;
+  background-color: var(--vscode-list-activeSelectionBackground);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.quick-stats__list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.quick-stats__list-item:hover::before {
+  transform: translateX(100%);
+}
+
+.quick-stats__list-item:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .item__value {
-  font-size: 0.875rem;
+  font-size: 1.5rem;
   font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: var(--vscode-editor-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.item__value .trend {
+  font-size: 1rem;
+  opacity: 0.8;
 }
 
 .item__label {
-  font-size: 0.575rem;
+  font-size: 0.85rem;
+  color: var(--vscode-descriptionForeground);
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* Domain-specific colors */
+.domain-Security {
+  border-left: 4px solid #ff4f4f;
+  background: linear-gradient(to right, rgba(255, 79, 79, 0.05), transparent);
+}
+
+.domain-Reliability {
+  border-left: 4px solid #00b4f0;
+  background: linear-gradient(to right, rgba(0, 180, 240, 0.05), transparent);
+}
+
+.domain-Maintainability {
+  border-left: 4px solid #7fb900;
+  background: linear-gradient(to right, rgba(127, 185, 0, 0.05), transparent);
+}
+
+.domain-Coverage {
+  border-left: 4px solid #b4b4b4;
+  background: linear-gradient(to right, rgba(180, 180, 180, 0.05), transparent);
+}
+
+.domain-Duplications {
+  border-left: 4px solid #ed7d20;
+  background: linear-gradient(to right, rgba(237, 125, 32, 0.05), transparent);
+}
+
+.domain-Size {
+  border-left: 4px solid #9B5DE5;
+  background: linear-gradient(to right, rgba(155, 93, 229, 0.05), transparent);
+}
+
+.domain-group {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--vscode-editor-background);
+  border-radius: 6px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.domain-title {
+  font-size: 0.9rem;
+  color: var(--vscode-foreground);
+  margin-bottom: 1rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--vscode-focusBorder);
+}
+
+/* Enhance domain colors */
+.domain-Security .domain-title {
+  border-color: #ff4f4f;
+}
+
+.domain-Reliability .domain-title {
+  border-color: #00b4f0;
+}
+
+.domain-Maintainability .domain-title {
+  border-color: #7fb900;
+}
+
+.domain-Coverage .domain-title {
+  border-color: #b4b4b4;
+}
+
+.domain-Duplications .domain-title {
+  border-color: #ed7d20;
+}
+
+.domain-Size .domain-title {
+  border-color: #9B5DE5;
+}
+
+/* Loading state */
+.loading-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  min-height: 150px;
+  background: var(--vscode-editor-background);
+  z-index: 1;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Add pulse animation for best values */
+.best-value-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: var(--vscode-testing-iconPassed);
+  color: var(--vscode-editor-background);
+  margin-top: 0.5rem;
+  display: inline-block;
+  animation: pulse 2s infinite, fadeIn 0.5s ease-out;
+}
+
+.project-info {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.project-info::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--vscode-testing-iconPassed) 0%,
+    var(--vscode-testing-iconFailed) 100%
+  );
+  opacity: 0.7;
+}
+
+.project-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.project-key {
+  font-size: 0.8rem;
+  color: var(--vscode-descriptionForeground);
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+
+.trend.positive {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.trend.negative {
+  color: var(--vscode-testing-iconFailed);
+}
+
+.value-best {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.value-good {
+  color: #7fb900;
+}
+
+.value-fair {
+  color: #ed7d20;
+}
+
+.value-poor {
+  color: var(--vscode-testing-iconFailed);
+}
+
+/* Status badges */
+.status-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+  display: inline-block;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.status-badge.critical {
+  background-color: var(--vscode-testing-iconFailed);
+  color: var(--vscode-editor-background);
+}
+
+.status-badge.warning {
+  background-color: var(--vscode-warningBackground, #f2bd4a);
+  color: var(--vscode-editor-background);
+}
+
+/* Status-based card styling */
+.quick-stats__list-item.status-critical {
+  border-left: 4px solid var(--vscode-testing-iconFailed);
+  animation: pulse-attention 2s infinite;
+}
+
+.quick-stats__list-item.status-warning {
+  border-left: 4px solid var(--vscode-warningBackground, #f2bd4a);
+}
+
+.quick-stats__list-item.status-good {
+  border-left: 4px solid var(--vscode-testing-iconPassed);
+}
+
+@keyframes pulse-attention {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.2);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+  }
+}
+
+/* Enhanced metric value display */
+.metric-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+/* Enhance loading state */
+.loading-container svg {
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+  color: var(--vscode-foreground);
+  opacity: 0.8;
+}
+
+/* Ensure the measures container is visible when not loading */
+#measures-container:not(.loading) {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Add a fade transition */
+#measures-container {
+  transition: opacity 0.3s ease;
+}
+
+/* Specific metric value colors */
+.metric-coverage.low-coverage {
+  color: var(--vscode-testing-iconFailed);
+  animation: pulse-attention 2s infinite;
+}
+
+.metric-coverage.medium-coverage {
+  color: var(--vscode-warningBackground, #f2bd4a);
+}
+
+.metric-coverage.high-coverage {
+  color: var(--vscode-testing-iconPassed);
+}
+
+/* Zero-value metrics (like bugs, vulnerabilities) */
+.metric-zero {
+  color: var(--vscode-testing-iconPassed);
+}
+
+/* Cognitive complexity indicator */
+.complexity-indicator {
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.complexity-low {
+  background-color: var(--vscode-testing-iconPassed);
+  color: var(--vscode-editor-background);
+}
+
+.complexity-medium {
+  background-color: var(--vscode-warningBackground, #f2bd4a);
+  color: var(--vscode-editor-background);
+}
+
+.complexity-high {
+  background-color: var(--vscode-testing-iconFailed);
+  color: var(--vscode-editor-background);
+}
+
+/* Best value indicators */
+.metric-best-value {
+  position: relative;
+}
+
+.metric-best-value::after {
+  content: '✓';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--vscode-testing-iconPassed);
+  color: var(--vscode-editor-background);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.quality-gate__details {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.last-update {
+  font-size: 0.75rem;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.last-update::before {
+  content: '•';
+  opacity: 0.5;
+}
+
+/* Enhanced tooltip styles */
+[title] {
+  position: relative;
+}
+
+[title]:hover::before {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  z-index: 1000;
+  max-width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Special styling for Needs Attention section */
+.domain-group[data-domain="Needs Attention"] {
+  border: 1px solid var(--vscode-testing-iconFailed);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 0, 0, 0.05),
+    transparent
+  );
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.domain-group[data-domain="Needs Attention"]::after {
+  content: '';
+  position: absolute;
+  bottom: -2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 1px;
+  background: var(--vscode-panel-border);
+}
+
+.domain-group[data-domain="Needs Attention"] .domain-title {
+  color: var(--vscode-testing-iconFailed);
+  font-weight: bold;
+  border-left-color: var(--vscode-testing-iconFailed);
+}
+
+/* Domain separators */
+.domain-group:not(:last-child) {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--vscode-panel-border);
+}
+
+/* Domain headers */
+.domain-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.domain-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Domain-specific icons */
+.domain-group[data-domain="Security"] .domain-title::before {
+  background-color: #00b4f0;
+}
+
+.domain-group[data-domain="Code Quality"] .domain-title::before {
+  background-color: #7fb900;
+}
+
+.domain-group[data-domain="Code Stats"] .domain-title::before {
+  background-color: #9B5DE5;
 }
