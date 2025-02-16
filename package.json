@@ -78,8 +78,12 @@
   },
   "scripts": {
     "vscode:prepublish": "webpack --mode production",
-    "compile": "webpack --mode none",
-    "watch": "webpack --mode none --watch",
+    "compile": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none",
+    "watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none --watch",
+    "package": "vsce package",
+    "build": "npm run compile && npm run package",
+    "install-extension": "code --install-extension sonarqube-status-1.2.0.vsix --force",
+    "build-and-install": "npm run build && npm run install-extension",
     "test-compile": "tsc -p ./"
   },
   "devDependencies": {
