@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_to_open_vsx:
+        description: 'Publish to OpenVSX Registry'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   publish:
@@ -28,15 +35,16 @@ jobs:
           npm run webpack-build
           npm run package
           
-      - name: Publish to Open VSX Registry
-        uses: HaaLeo/publish-vscode-extension@v1
-        id: publishToOpenVSX
-        with:
-          pat: ${{ secrets.OPEN_VSX_TOKEN }}
-          
       - name: Publish to Visual Studio Marketplace
         uses: HaaLeo/publish-vscode-extension@v1
+        id: publishToVSCode
         with:
           pat: ${{ secrets.VSCE_PAT}}
           registryUrl: https://marketplace.visualstudio.com
-          extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
+          
+      - name: Publish to Open VSX Registry
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_to_open_vsx
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          extensionFile: ${{ steps.publishToVSCode.outputs.vsixPath }}
