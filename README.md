@@ -1,83 +1,85 @@
-<p align="center">
-  <a href="https://github.com/adisreyaj/vscode-sonarqube-status">
-    <img src="https://raw.githubusercontent.com/adisreyaj/vscode-sonarqube-status/master/images/logo.png" alt="Logo" width="120" height="120">
-  </a>
+# SonarQube Project Status Plus
 
-<h3 align="center">SonarQube Project Status</h3>
-  <p align="center">VSCode extension to view SonarQube results right inside your favorite IDE - VSCode
-</p>
-</p>
+This extension is a maintained fork of [SonarQube Project Status](https://github.com/adisreyaj/vscode-sonarqube-status) originally created by [Adithya Sreyaj](https://github.com/adisreyaj).
 
-SonarQube is a static code analyzer for your project. It makes sure your code is up to the mark and will not break in
-production.
+## Why this fork?
 
-![SonarQube Status Results](https://raw.githubusercontent.com/adisreyaj/vscode-sonarqube-status/master/images/sonarqube-vscode-status.jpg)
+The original project has been inactive since 2021 with several pending issues and pull requests. This fork aims to:
+- Maintain active development and support
+- Fix existing bugs and issues
+- Add new features and improvements
+- Provide timely responses to community contributions
 
-## How to Use
-
-1. Install the Extension and Make sure it is activated.
-2. Click on the SonarQube logo on the activity bar or run the command from Command Palette:
-
-```
-SonarQube: Get Report
-```
-
-3. This will create a `project.json` file in `.vscode` folder.
-4. Make sure to add the details:
-
-### Using Password Auth
-
-```json
-{
-  "project": "adisreyaj_compito",
-  "sonarURL": "https://sonarcloud.io",
-  "auth": {
-    "username": "",
-    "password": ""
-  }
-}
-```
-
-### Using Token Auth
-
-```json
-{
-  "project": "adisreyaj_compito",
-  "sonarURL": "https://sonarcloud.io",
-  "auth": {
-    "token": ""
-  }
-}
-```
-
-The `auth` is optional property. It's only required for private SonarQube projects. You can etither use the **
-username/password** based authentication or **token-based** authentication.
-
-5. Run the command again and you should see the report on the SonarQube section in the activity bar.
+## Recent Improvements
+- Fixed SonarQube API integration issues
+- Added better error logging and debugging
+- Updated dependencies to latest versions
+- Improved TypeScript type safety
+- Added modern VS Code features support
 
 ## Features
 
-1. Status bar item added for quickly knowing the Quality Gate Status without having to click elsewhere.
+1. Status bar item for quick Quality Gate Status visibility
+   ![Sonarqube passed](images/sonar-passed.png)
+   ![Sonarqube failed](images/sonar-failed.png)
 
-![Sonarqube passed](https://raw.githubusercontent.com/adisreyaj/vscode-sonarqube-status/master/images/sonar-passed.png)
+2. Detailed metrics in the dedicated SonarQube section
+   ![Sonarqube Full Result](images/sonar-full-details.png)
 
-![Sonarqube failed](https://raw.githubusercontent.com/adisreyaj/vscode-sonarqube-status/master/images/sonar-failed.png)
+3. Quick refresh button to update results
 
-2. Full details in the Sonarqube Dedicated section
+## Setup
 
-![Sonarqube Full Result](https://raw.githubusercontent.com/adisreyaj/vscode-sonarqube-status/master/images/sonar-full-details.png)
+1. Install the extension
+2. Click on the SonarQube logo in the activity bar or run the command:
+   ```
+   SonarQube: Get Report
+   ```
+3. This will create a `project.json` file in `.vscode` folder
+4. Update the configuration:
 
-3. Refresh button to quickly refresh the results.
+### Using Password Authentication
+```json
+{
+  "project": "your_project_key",
+  "sonarURL": "https://your.sonarqube.url",
+  "auth": {
+    "username": "your_username",
+    "password": "your_password"
+  }
+}
+```
 
-## Roadmap
+### Using Token Authentication
+```json
+{
+  "project": "your_project_key",
+  "sonarURL": "https://your.sonarqube.url",
+  "auth": {
+    "token": "your_token"
+  }
+}
+```
 
-See the [open issues](https://github.com/adisreyaj/vscode-sonarqube-status/issues) for a list of proposed features (and
-known issues).
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Install the extension locally
+npm run install-extension
+```
+
+## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## Show your support
-
-Please ⭐️ this repository if this project helped you!
+## Acknowledgments
+- Original author: [Adithya Sreyaj](https://github.com/adisreyaj)
+- Original project: [vscode-sonarqube-status](https://github.com/adisreyaj/vscode-sonarqube-status)
