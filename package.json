@@ -1,36 +1,36 @@
 {
-  "name": "sonarqube-status",
-  "displayName": "SonarQube Project Status",
-  "description": "Get the status of your project including the Build status, Static code analysis statuses and more...",
-  "version": "1.2.0",
+  "name": "sonarqube-status-plus",
+  "displayName": "SonarQube Project Status Plus",
+  "description": "Get the status of your project including the Build status, Static code analysis statuses and more... (Maintained fork of sonarqube-status)",
+  "version": "1.0.0",
   "engines": {
-    "vscode": "^1.61.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Other"
   ],
   "author": {
-    "name": "Adithya Sreyaj",
-    "email": "adi.sreyaj@gmail.com",
-    "url": "https://adi.so"
+    "name": "Dinesh Solanki"
   },
+  "contributors": [
+    {
+      "name": "Adithya Sreyaj",
+      "email": "adi.sreyaj@gmail.com",
+      "url": "https://adi.so"
+    }
+  ],
   "icon": "images/logo.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adisreyaj/vscode-sonarqube-status.git"
+    "url": "https://github.com/DineshSolanki/vscode-sonarqube-status"
   },
-  "publisher": "adisreyaj",
+  "publisher": "DineshSolanki",
   "keywords": [
     "sonarqube",
     "sonarcloud",
     "static code analyzer",
     "sonar scanner result",
     "code coverage"
-  ],
-  "activationEvents": [
-    "onCommand:sonarqubeStatus.get",
-    "onCommand:sonarqubeStatus.refresh",
-    "onView:sonarqubeStatus.quickInfo"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -78,9 +78,12 @@
   },
   "scripts": {
     "vscode:prepublish": "webpack --mode production",
-    "compile": "webpack --mode none",
-    "watch": "webpack --mode none --watch",
-    "postinstall": "node ./node_modules/vscode/bin/install",
+    "compile": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none",
+    "watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode none --watch",
+    "package": "vsce package",
+    "build": "npm run compile && npm run package",
+    "install-extension": "code --install-extension sonarqube-status-1.2.0.vsix --force",
+    "build-and-install": "npm run build && npm run install-extension",
     "test-compile": "tsc -p ./"
   },
   "devDependencies": {
@@ -99,11 +102,11 @@
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-import": "^2.25.2",
     "prettier": "^2.6.2",
-    "ts-loader": "^5.4.5",
+    "ts-loader": "^9.4.1",
     "typescript": "^4.4.4",
-    "vscode-test": "^1.6.1",
+    "@vscode/test-electron": "^2.3.8",
     "webpack": "^5.58.2",
-    "webpack-cli": "^3.3.12"
+    "webpack-cli": "^5.0.1"
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
@@ -112,5 +115,10 @@
     "millify": "^4.0.0",
     "node-fetch": "^3.1.1",
     "sonarqube-sdk": "^0.3.0"
-  }
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DineshSolanki/vscode-sonarqube-status/issues"
+  },
+  "homepage": "https://github.com/DineshSolanki/vscode-sonarqube-status#readme"
 }
