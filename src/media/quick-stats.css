@@ -600,3 +600,24 @@ h2 {
 .domain-group[data-domain="Code Stats"] .domain-title::before {
   background-color: #9B5DE5;
 }
+
+.custom-tooltip {
+  position: absolute;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  padding: 0.5rem;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 0.8rem;
+  z-index: 1000;
+  white-space: pre-wrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

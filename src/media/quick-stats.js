@@ -75,7 +75,10 @@
       hideLoadingState();
 
       const organizedMeasures = organizeMeasuresByDomain(measures);
-      measuresContainer.innerHTML = createCards(organizedMeasures);
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(createCards(organizedMeasures));
+      measuresContainer.innerHTML = '';
+      measuresContainer.appendChild(fragment);
       
       const alertStatus = measures.find(m => m.metric === 'alert_status')?.value;
       qualityGateContainer.innerHTML = getStatus(alertStatus);
@@ -273,43 +276,53 @@
   }
 
   function createCards(domainGroups) {
-    return `
-      <section class="quick-stats">
-        ${domainGroups.map((group, index) => `
-          <div class="domain-group" data-domain="${group.domain}" style="animation-delay: ${index * 100}ms">
-            <h3 class="domain-title">${group.domain}</h3>
-            <ul class="quick-stats__list">
-              ${group.items.map((item, i) => createCard(item, group.domain, i)).join('')}
-            </ul>
-          </div>
-        `).join('')}
-      </section>
-    `;
+    const fragment = document.createDocumentFragment();
+    domainGroups.forEach((group, index) => {
+      const domainGroup = document.createElement('div');
+      domainGroup.className = 'domain-group';
+      domainGroup.dataset.domain = group.domain;
+      domainGroup.style.animationDelay = `${index * 100}ms`;
+
+      const domainTitle = document.createElement('h3');
+      domainTitle.className = 'domain-title';
+      domainTitle.textContent = group.domain;
+      domainGroup.appendChild(domainTitle);
+
+      const list = document.createElement('ul');
+      list.className = 'quick-stats__list';
+      group.items.forEach((item, i) => {
+        list.appendChild(createCard(item, group.domain, i));
+      });
+      domainGroup.appendChild(list);
+
+      fragment.appendChild(domainGroup);
+    });
+    return fragment;
   }
 
   function createCard(card, domain, index) {
-    const trend = getTrendIcon(card);
-    const description = getMetricDescription(card.label);
-    const valueClass = getValueClass(card);
-    const statusClass = getStatusClass(card);
-    
-    return `
-      <li class="quick-stats__list-item domain-${domain} ${statusClass}" 
-          data-metric="${card.label}"
-          style="animation-delay: ${index * 50}ms"
-          title="${description}">
-        <header>
-          <p class="item__value ${valueClass}">
-            ${card.value}
-            ${trend}
-          </p>
-        </header>
-        <footer>
-          <p class="item__label">${card.label}</p>
-          ${getStatusBadge(card)}
-        </footer>
-      </li>
-    `;
+    const listItem = document.createElement('li');
+    listItem.className = `quick-stats__list-item domain-${domain} ${getStatusClass(card)}`;
+    listItem.dataset.metric = card.label;
+    listItem.dataset.description = getMetricDescription(card.label);
+    listItem.style.animationDelay = `${index * 50}ms`;
+
+    const header = document.createElement('header');
+    const value = document.createElement('p');
+    value.className = `item__value ${getValueClass(card)}`;
+    value.innerHTML = `${card.value} ${getTrendIcon(card)}`;
+    header.appendChild(value);
+    listItem.appendChild(header);
+
+    const footer = document.createElement('footer');
+    const label = document.createElement('p');
+    label.className = 'item__label';
+    label.textContent = card.label;
+    footer.appendChild(label);
+    footer.innerHTML += getStatusBadge(card);
+    listItem.appendChild(footer);
+
+    return listItem;
   }
 
   function getTrendIcon(card) {
@@ -414,7 +427,7 @@
           <div class="quality-gate__badge quality-gate__fail" title="${description}">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
               <path fill="none" d="M0 0h24v24H0z"/>
-              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-11.414L9.172 7.757 7.757 9.172 10.586 12l-2.829 2.828 1.415 1.415L12 13.414l2.828 2.829 1.415-1.415L13.414 12l2.829-2.828-1.415-1.415L12 10.586z"/>
+              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10-10-4.477 10-10 10zm0-11.414L9.172 7.757 7.757 9.172 10.586 12l-2.829 2.828 1.415 1.415L12 13.414l2.828 2.829 1.415-1.415L13.414 12l2.829-2.828-1.415-1.415L12 10.586z"/>
             </svg>
             <div>
               <p>Quality Gate Failed</p>
@@ -426,7 +439,7 @@
           <div class="quality-gate__badge quality-gate__pass" title="${description}">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
               <path fill="none" d="M0 0h24v24H0z"/>
-              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-.997-6 7.07-7.071-1.414-1.414-5.656 5.657-2.829-2.829-1.414 1.414L11.003 16z"/>
+              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10-10-4.477 10-10 10zm-.997-6 7.07-7.071-1.414-1.414-5.656 5.657-2.829-2.829-1.414 1.414L11.003 16z"/>
             </svg>
             <div>
               <p>Quality Gate Passed</p>
@@ -457,7 +470,30 @@
           metric: metric
         });
       });
+
+      card.addEventListener('mouseenter', showTooltip);
+      card.addEventListener('mouseleave', hideTooltip);
     });
+  }
+
+  function showTooltip(event) {
+    const card = event.currentTarget;
+    const description = card.dataset.description;
+    const tooltip = document.createElement('div');
+    tooltip.className = 'custom-tooltip';
+    tooltip.innerText = description;
+    document.body.appendChild(tooltip);
+
+    const rect = card.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 10}px`;
+  }
+
+  function hideTooltip() {
+    const tooltip = document.querySelector('.custom-tooltip');
+    if (tooltip) {
+      tooltip.remove();
+    }
   }
 
   function animateCards() {
