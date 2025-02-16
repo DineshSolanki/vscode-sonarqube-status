@@ -4,7 +4,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 /** @type {import('webpack').Configuration} */
 
 const config = {
-  target: 'node',
+  target: ['node', 'es2020'],
   entry: './src/extension.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -18,6 +18,9 @@ const config = {
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    fallback: {
+      "crypto": false
+    }
   },
   module: {
     rules: [
@@ -27,6 +30,11 @@ const config = {
         use: [
           {
             loader: 'ts-loader',
+            options: {
+              compilerOptions: {
+                module: 'es2020'
+              }
+            }
           },
         ],
       },
