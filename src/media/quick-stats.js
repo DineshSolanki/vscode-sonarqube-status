@@ -420,43 +420,34 @@
   }
 
   function getStatus(status) {
-    const description = getQualityGateDescription(status);
     switch (status) {
       case 'ERROR':
         return `
-          <div class="quality-gate__badge quality-gate__fail" title="${description}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-              <path fill="none" d="M0 0h24v24H0z"/>
-              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10-10-4.477 10-10 10zm0-11.414L9.172 7.757 7.757 9.172 10.586 12l-2.829 2.828 1.415 1.415L12 13.414l2.828 2.829 1.415-1.415L13.414 12l2.829-2.828-1.415-1.415L12 10.586z"/>
+          <div class="quality-gate__badge quality-gate__fail">
+            <svg viewBox="0 0 16 16">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="1.5"/>
             </svg>
-            <div>
-              <p>Quality Gate Failed</p>
-              <small class="quality-gate__details">Click for details</small>
-            </div>
+            <p>Failed</p>
           </div>`;
       case 'OK':
         return `
-          <div class="quality-gate__badge quality-gate__pass" title="${description}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-              <path fill="none" d="M0 0h24v24H0z"/>
-              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10-10-4.477 10-10 10zm-.997-6 7.07-7.071-1.414-1.414-5.656 5.657-2.829-2.829-1.414 1.414L11.003 16z"/>
+          <div class="quality-gate__badge quality-gate__pass">
+            <svg viewBox="0 0 16 16">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4.5 8l2.5 2.5L11.5 5" fill="none" stroke="currentColor" stroke-width="1.5"/>
             </svg>
-            <div>
-              <p>Quality Gate Passed</p>
-              <small class="quality-gate__details">Click for details</small>
-            </div>
+            <p>Passed</p>
           </div>`;
       default:
         return `
-          <div class="quality-gate__badge" title="${description}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-              <path fill="none" d="M0 0h24v24H0z"/>
-              <path fill="currentColor" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10-10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z"/>
+          <div class="quality-gate__badge quality-gate__unknown">
+            <svg viewBox="0 0 16 16">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="8" cy="12" r="1" fill="currentColor"/>
+              <path d="M8 9.5v-1L9.5 7A2 2 0 0 0 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
             </svg>
-            <div>
-              <p>Quality Gate Unknown</p>
-              <small class="quality-gate__details">Click for details</small>
-            </div>
+            <p>Unknown</p>
           </div>`;
     }
   }

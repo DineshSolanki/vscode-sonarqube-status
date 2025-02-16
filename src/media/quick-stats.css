@@ -29,66 +29,79 @@ h2 {
   padding-bottom: 0.5rem;
 }
 
+/* Simplified quality gate badge */
 .quality-gate__badge {
-  display: flex;
-  gap: 0.75rem;
+  display: inline-flex;
   align-items: center;
-  padding: 0.8rem 1.2rem;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  animation: slideIn 0.5s ease-out;
-  cursor: pointer;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 3px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
 }
 
+.quality-gate__badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.quality-gate__badge p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--vscode-foreground);
+}
+
+/* Simple status colors without animations */
+.quality-gate__pass {
+  border-left: 2px solid var(--vscode-testing-iconPassed);
+}
+
+.quality-gate__fail {
+  border-left: 2px solid var(--vscode-testing-iconFailed);
+}
+
+.quality-gate__unknown {
+  border-left: 2px solid var(--vscode-descriptionForeground);
+}
+
+/* Remove all animations and transitions */
+.quality-gate__badge, 
+.quality-gate__pass,
+.quality-gate__fail,
+.quality-gate__unknown {
+  transition: none;
+  animation: none;
+}
+
+/* Simple hover state */
 .quality-gate__badge:hover {
-  transform: translateY(-2px);
+  background-color: var(--vscode-list-hoverBackground);
 }
 
 .quality-gate__badge:hover .quality-gate__details {
   text-decoration: underline;
 }
 
-.quality-gate__pass {
-  background-color: var(--vscode-testing-iconPassed);
-  color: var(--vscode-editor-background);
-  box-shadow: 0 2px 8px rgba(0, 255, 0, 0.1);
+.quality-gate__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
-.quality-gate__fail {
-  background-color: var(--vscode-testing-iconFailed);
-  color: var(--vscode-editor-background);
-  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.2);
-  animation: pulse-attention 2s infinite;
+.quality-gate__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.quality-gate__fail svg {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
-}
-
-/* Make the failing gate more prominent */
-.quality-gate__fail::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  transform: scaleX(0);
-  animation: scan 2s ease-in-out infinite;
-}
-
-@keyframes scan {
-  0% { transform: scaleX(0); opacity: 0; }
-  50% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(0); opacity: 0; }
+.quality-gate__text p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--vscode-foreground);
 }
 
 .quick-stats__list {
