@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { METRICS_TO_FETCH, RATING_VALUE_MAP } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
 import { isConfigured } from './file.helpers';
+import { fetch } from 'undici';
 
 let client: Client | null = null;
 let outputChannel: vscode.OutputChannel;
