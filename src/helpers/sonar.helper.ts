@@ -7,6 +7,7 @@ import { METRICS_TO_FETCH, RATING_VALUE_MAP } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
 import { isConfigured } from './file.helpers';
 import { fetch } from 'undici';
+import { workspace } from 'vscode';
 
 let client: Client | null = null;
 let outputChannel: vscode.OutputChannel;
@@ -18,6 +19,17 @@ function getOutputChannel() {
   return outputChannel;
 }
 
+function getMergedConfig(config: Config) {
+  const vscodeSettings = workspace.getConfiguration('sonarqubeStatus');
+  
+  // VS Code settings take highest precedence, specify types explicitly
+  return {
+    project: vscodeSettings.get<string>('project') || config.project,
+    sonarURL: vscodeSettings.get<string>('sonarURL') || config.sonarURL || process.env.SONAR_HOST_URL,
+    token: vscodeSettings.get<string>('token') || config.token || process.env.SONAR_TOKEN
+  };
+}
+
 export const sonarSDKClient = (config: Config) => {
   const channel = getOutputChannel();
   channel.appendLine('\n=== Initializing SonarQube Client ===');
@@ -27,42 +39,34 @@ export const sonarSDKClient = (config: Config) => {
     return client;
   }
 
-  const { isConfigured: configured, authType } = isConfigured(config);
+  const mergedConfig = getMergedConfig(config);
+  const { isConfigured: configured } = isConfigured(config);
   if (!configured) {
     channel.appendLine('Error: Not configured properly');
     throw new Error('Not configured');
   }
 
-  const getAuthConfig: Record<string, () => SonarQubeSDKAuth | null> = {
-    token: () =>
-      config.auth?.token
-        ? {
-            type: 'token',
-            token: config.auth?.token,
-          }
-        : null,
-    password: () =>
-      config.auth?.username && config.auth?.password
-        ? {
-            type: 'password',
-            username: config.auth?.username,
-            password: config.auth?.password,
-          }
-        : null,
-  };
+  if (!mergedConfig.token) {
+    channel.appendLine('Error: Token not configured');
+    throw new Error('Token not configured');
+  }
 
-  const auth = getAuthConfig[authType]();
-  if (!auth) {
-    channel.appendLine('Error: Authentication not configured properly');
-    throw new Error('Auth not configured');
+  if (!mergedConfig.sonarURL) {
+    channel.appendLine('Error: SonarQube URL not configured');
+    throw new Error('SonarQube URL not configured');
   }
   
   try {
-    channel.appendLine(`Connecting to SonarQube at: ${config.sonarURL}`);
-    channel.appendLine(`Using auth type: ${authType}`);
+    channel.appendLine(`Connecting to SonarQube at: ${mergedConfig.sonarURL}`);
+    channel.appendLine('Using token authentication');
     
-    // Initialize the client
-    client = new Client({ url: config.sonarURL, auth });
+    client = new Client({ 
+      url: mergedConfig.sonarURL, 
+      auth: {
+        type: 'token',
+        token: mergedConfig.token
+      }
+    });
     channel.appendLine('SonarQube client initialized successfully');
     return client;
   } catch (error: any) {
@@ -94,17 +98,16 @@ export async function getMetrics(config: Config) {
   channel.show(true);
   
   try {
+    const mergedConfig = getMergedConfig(config);
     const sonarClient = sonarSDKClient(config);
     if (sonarClient) {
-      channel.appendLine(`Fetching measures for project: ${config.project}`);
+      channel.appendLine(`Fetching measures for project: ${mergedConfig.project}`);
       channel.appendLine(`Metrics to fetch: ${METRICS_TO_FETCH.join(', ')}`);
       
       // Make direct fetch call since the SDK doesn't handle the response format correctly
-      const authHeader = config.auth?.token 
-        ? `Basic ${Buffer.from(config.auth.token + ':').toString('base64')}`
-        : `Basic ${Buffer.from(config.auth?.username + ':' + config.auth?.password).toString('base64')}`;
+      const authHeader = `Basic ${Buffer.from(mergedConfig.token + ':').toString('base64')}`;
       
-      const response = await fetch(`${config.sonarURL}/api/measures/component?component=${config.project}&metricKeys=${METRICS_TO_FETCH.join(',')}`, {
+      const response = await fetch(`${mergedConfig.sonarURL}/api/measures/component?component=${mergedConfig.project}&metricKeys=${METRICS_TO_FETCH.join(',')}`, {
         headers: {
           'Authorization': authHeader,
           'Accept': 'application/json'

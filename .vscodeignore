@@ -8,3 +8,5 @@ tsconfig.json
 webpack.config.json
 .prettierrc
 .eslintrc.js
+# Don't ignore CHANGELOG.md and other documentation
+!CHANGELOG.md

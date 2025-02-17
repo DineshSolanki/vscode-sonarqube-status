@@ -1,12 +1,15 @@
-export const VSCODE_PROJECT_CONFIG = {
-  _comment:
-    'The authentication can be proceed in two ways. Using combination of username and password or token. The project.json which contains two of them at once is invalid.',
+interface ProjectConfig {
+  _comment: string;
+  project: string;
+  sonarURL?: string;
+  token?: string;
+}
+
+export const VSCODE_PROJECT_CONFIG: ProjectConfig = {
+  _comment: 'You can configure SonarQube settings in VS Code Settings (highest priority), this file (second priority), or through environment variables SONAR_HOST_URL and SONAR_TOKEN (lowest priority).',
   project: '<your-key-here>',
   sonarURL: '<your-sonar-url>',
-  auth: {
-    username: '<sonar-username>',
-    password: '<sonar-password>',
-  },
+  token: '<your-token-here>'
 };
 
 export const VSCODE_PROJECT_JSON_FORMAT_OPTIONS = {
