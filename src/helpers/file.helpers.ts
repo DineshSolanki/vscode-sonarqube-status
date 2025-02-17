@@ -88,8 +88,8 @@ export const createDefaultConfigFile = async (path: string) => {
       VSCODE_PROJECT_JSON_FORMAT_OPTIONS
     );
     return defaultConfig;
-  } catch (error) {
-    throw new Error('Failed to create config file');
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to create config file');
   }
 };
 
