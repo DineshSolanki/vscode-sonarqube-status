@@ -7,6 +7,7 @@ import { METRICS_TO_FETCH, RATING_VALUE_MAP } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
 import { isConfigured } from './file.helpers';
 import { fetch } from 'undici';
+import { workspace } from 'vscode';
 
 let client: Client | null = null;
 let outputChannel: vscode.OutputChannel;
@@ -19,11 +20,13 @@ function getOutputChannel() {
 }
 
 function getMergedConfig(config: Config) {
-  // Give precedence to project.json values over environment variables
+  const vscodeSettings = workspace.getConfiguration('sonarqubeStatus');
+  
+  // VS Code settings take highest precedence, specify types explicitly
   return {
-    project: config.project,
-    sonarURL: config.sonarURL || process.env.SONAR_HOST_URL,
-    token: config.token || process.env.SONAR_TOKEN
+    project: vscodeSettings.get<string>('project') || config.project,
+    sonarURL: vscodeSettings.get<string>('sonarURL') || config.sonarURL || process.env.SONAR_HOST_URL,
+    token: vscodeSettings.get<string>('token') || config.token || process.env.SONAR_TOKEN
   };
 }
 
@@ -47,13 +50,18 @@ export const sonarSDKClient = (config: Config) => {
     channel.appendLine('Error: Token not configured');
     throw new Error('Token not configured');
   }
+
+  if (!mergedConfig.sonarURL) {
+    channel.appendLine('Error: SonarQube URL not configured');
+    throw new Error('SonarQube URL not configured');
+  }
   
   try {
     channel.appendLine(`Connecting to SonarQube at: ${mergedConfig.sonarURL}`);
     channel.appendLine('Using token authentication');
     
     client = new Client({ 
-      url: mergedConfig.sonarURL!, 
+      url: mergedConfig.sonarURL, 
       auth: {
         type: 'token',
         token: mergedConfig.token

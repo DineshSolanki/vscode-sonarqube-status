@@ -6,7 +6,7 @@ interface ProjectConfig {
 }
 
 export const VSCODE_PROJECT_CONFIG: ProjectConfig = {
-  _comment: 'You can configure SonarQube settings either here or through environment variables (SONAR_HOST_URL, SONAR_TOKEN). Project.json configuration takes precedence over environment variables.',
+  _comment: 'You can configure SonarQube settings in VS Code Settings (highest priority), this file (second priority), or through environment variables SONAR_HOST_URL and SONAR_TOKEN (lowest priority).',
   project: '<your-key-here>',
   sonarURL: '<your-sonar-url>',
   token: '<your-token-here>'

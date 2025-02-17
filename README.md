@@ -37,7 +37,25 @@ The original project has been inactive since 2022 with several pending issues an
    ```
 3. Configure SonarQube settings using one of the following methods:
 
-### Using project.json Configuration (Takes Precedence)
+### Using VS Code Settings (Highest Priority)
+
+1. Open VS Code Settings (File > Preferences > Settings)
+2. Search for "SonarQube Status"
+3. Configure the following settings:
+   - `sonarqubeStatus.project`: Your SonarQube project key
+   - `sonarqubeStatus.sonarURL`: Your SonarQube server URL
+   - `sonarqubeStatus.token`: Your SonarQube authentication token
+
+Alternatively, you can add these settings in your `settings.json`:
+```json
+{
+  "sonarqubeStatus.project": "your_project_key",
+  "sonarqubeStatus.sonarURL": "https://your.sonarqube.url",
+  "sonarqubeStatus.token": "your_token"
+}
+```
+
+### Using project.json Configuration (Second Priority)
 
 Create `.vscode/project.json` with your configuration:
 
@@ -49,13 +67,6 @@ Create `.vscode/project.json` with your configuration:
 }
 ```
 
-You can also use a minimal configuration and let environment variables handle the rest:
-```json
-{
-  "project": "your_project_key"
-}
-```
-
 ### Using Environment Variables (Fallback)
 
 Set the following environment variables:
@@ -64,7 +75,10 @@ SONAR_HOST_URL=https://your.sonarqube.url
 SONAR_TOKEN=your_token
 ```
 
-**Note**: Configuration in project.json takes precedence over environment variables. Environment variables are only used for settings not defined in project.json.
+**Configuration Priority**:
+1. VS Code Settings (Highest)
+2. project.json
+3. Environment Variables (Lowest)
 
 ## Development
 

@@ -1,6 +1,6 @@
 import { ensureDir, ensureFile, outputJson, readJson } from 'fs-extra';
 import { has, isEmpty } from 'lodash-es';
-import { commands, Uri } from 'vscode';
+import { commands, Uri, workspace } from 'vscode';
 import { VSCODE_PROJECT_CONFIG, VSCODE_PROJECT_JSON_FORMAT_OPTIONS } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
 import * as path from 'path';
@@ -8,6 +8,15 @@ import * as path from 'path';
 interface EnvConfig {
   sonarURL?: string;
   token?: string;
+}
+
+function getVSCodeSettings(): EnvConfig & { project?: string } {
+  const config = workspace.getConfiguration('sonarqubeStatus');
+  return {
+    project: config.get('project'),
+    sonarURL: config.get('sonarURL'),
+    token: config.get('token')
+  };
 }
 
 function getEnvConfig(): EnvConfig {
@@ -18,34 +27,53 @@ function getEnvConfig(): EnvConfig {
 }
 
 export function getIsAuthConfigured(config: Config) {
+  const vscodeSettings = getVSCodeSettings();
   const envConfig = getEnvConfig();
   
-  // Check file-based token first
+  // Check VS Code settings first
+  if (vscodeSettings.token && !isEmpty(vscodeSettings.token)) {
+    return { isAuthConfigured: true };
+  }
+  
+  // Check file-based token second
   if (has(config, 'token') && config.token && !isEmpty(config.token) && !config.token?.includes('sonar-token')) {
     return { isAuthConfigured: true };
   }
 
-  // Only check environment variable if no token in config
+  // Finally check environment variable
   return { isAuthConfigured: !isEmpty(envConfig.token) };
 }
 
 function getIsProjectKeyConfigured(config: Config) {
+  const vscodeSettings = getVSCodeSettings();
+  
+  // Check VS Code settings first
+  if (vscodeSettings.project && !isEmpty(vscodeSettings.project)) {
+    return true;
+  }
+  
   return (
     has(config, 'project') && !isEmpty(config.project) && !config.project.includes('your-key-here')
   );
 }
 
 function getSonarURLConfigured(config: Config) {
+  const vscodeSettings = getVSCodeSettings();
   const envConfig = getEnvConfig();
   
-  // If sonarURL exists in project.json, only validate that
+  // Check VS Code settings first
+  if (vscodeSettings.sonarURL && !isEmpty(vscodeSettings.sonarURL)) {
+    return true;
+  }
+  
+  // Check project.json second
   if (has(config, 'sonarURL')) {
     return !isEmpty(config.sonarURL) &&
            config.sonarURL &&
            !config.sonarURL.includes('your-sonar-url');
   }
   
-  // Only check env var if no sonarURL in project.json
+  // Finally check env var
   return !isEmpty(envConfig.sonarURL);
 }
 

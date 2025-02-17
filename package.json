@@ -47,8 +47,32 @@
           "light": "images/light/refresh.svg",
           "dark": "images/dark/refresh.svg"
         }
+      },
+      {
+        "command": "sonarqubeStatus.openSettings",
+        "title": "SonarQube: Open Settings"
       }
     ],
+    "configuration": {
+      "title": "SonarQube Status",
+      "properties": {
+        "sonarqubeStatus.project": {
+          "type": "string",
+          "default": "",
+          "description": "SonarQube project key"
+        },
+        "sonarqubeStatus.sonarURL": {
+          "type": "string",
+          "default": "",
+          "description": "SonarQube server URL. Takes precedence over SONAR_HOST_URL environment variable"
+        },
+        "sonarqubeStatus.token": {
+          "type": "string",
+          "default": "",
+          "description": "SonarQube authentication token. Takes precedence over SONAR_TOKEN environment variable"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -71,6 +95,11 @@
       "view/title": [
         {
           "command": "sonarqubeStatus.refresh",
+          "when": "view == sonarqubeStatus.quickInfo",
+          "group": "navigation"
+        },
+        {
+          "command": "sonarqubeStatus.openSettings",
           "when": "view == sonarqubeStatus.quickInfo",
           "group": "navigation"
         }

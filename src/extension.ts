@@ -5,18 +5,34 @@ import { getMetrics } from './helpers/sonar.helper';
 import { SonarQuickStatsProvider } from './views/quick-stats.webview';
 import * as path from 'path';
 
+const CONFIG_VERSION = '1.0.0';
+const WORKSPACE_STATE_KEY = 'sonarqubeStatus.config';
+
+interface WorkspaceState {
+  version: string;
+  lastUpdate: number;
+  configSource: 'vscode' | 'project.json' | 'env' | null;
+}
+
 let outputChannel: vscode.OutputChannel;
 
-async function checkEnvironmentVariables() {
+async function checkConfigurationSources() {
+  const vscodeSettings = vscode.workspace.getConfiguration('sonarqubeStatus');
+  const hasVSCodeConfig = !!vscodeSettings.get('token') && 
+                         !!vscodeSettings.get('sonarURL') && 
+                         !!vscodeSettings.get('project');
+  
   const envVars = {
     sonarURL: process.env.SONAR_HOST_URL,
-    token: process.env.SONAR_TOKEN,
-    username: process.env.SONAR_USERNAME,
-    password: process.env.SONAR_PASSWORD
+    token: process.env.SONAR_TOKEN
   };
   
+  const hasEnvConfig = !!envVars.sonarURL && !!envVars.token;
+  
   return {
-    hasEnvConfig: !!envVars.sonarURL && (!!envVars.token || (!!envVars.username && !!envVars.password)),
+    hasVSCodeConfig,
+    hasEnvConfig,
+    vscodeSettings,
     envVars
   };
 }
@@ -44,6 +60,26 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(statusBarItem);
   context.subscriptions.push(outputChannel);
 
+  // Initialize or migrate workspace state
+  let workspaceState = context.workspaceState.get<WorkspaceState>(WORKSPACE_STATE_KEY);
+  if (!workspaceState || workspaceState.version !== CONFIG_VERSION) {
+    workspaceState = {
+      version: CONFIG_VERSION,
+      lastUpdate: Date.now(),
+      configSource: null
+    };
+    context.workspaceState.update(WORKSPACE_STATE_KEY, workspaceState);
+  }
+
+  async function updateWorkspaceState(configSource: WorkspaceState['configSource']) {
+    workspaceState = {
+      ...workspaceState!,
+      lastUpdate: Date.now(),
+      configSource
+    };
+    await context.workspaceState.update(WORKSPACE_STATE_KEY, workspaceState);
+  }
+
   async function getSonarQubeStatus() {
     outputChannel.clear(); // Clear previous output
     outputChannel.show(true); // Make sure it's visible
@@ -53,8 +89,12 @@ export function activate(context: vscode.ExtensionContext) {
     if (workspace) {
       outputChannel.appendLine('Checking configuration...');
 
-      // Check environment variables first
-      const { hasEnvConfig, envVars } = await checkEnvironmentVariables();
+      // Check available configuration sources
+      const { hasVSCodeConfig, hasEnvConfig } = await checkConfigurationSources();
+      
+      if (hasVSCodeConfig) {
+        outputChannel.appendLine('Found SonarQube configuration in VS Code settings');
+      }
       if (hasEnvConfig) {
         outputChannel.appendLine('Found SonarQube configuration in environment variables');
       }
@@ -62,43 +102,44 @@ export function activate(context: vscode.ExtensionContext) {
       // Normalize workspace path
       const workspacePath = workspace[0].uri.fsPath;
 
-      // Check if the config file exists in .vscode/project.json and prompt user to create it if missing
+      // Check if project.json exists
       const configFiles = await vscode.workspace.findFiles('.vscode/project.json', null, 1);
       if (configFiles.length === 0) {
         let message = 'No project configuration file found.';
-        if (!hasEnvConfig) {
-          message += ' Would you like to create one?';
+        if (hasVSCodeConfig) {
+          message += ' Using VS Code settings for configuration.';
+          outputChannel.appendLine(message);
+        } else if (hasEnvConfig) {
+          message += ' Using environment variables for configuration.';
+          outputChannel.appendLine(message);
         } else {
-          message += ' Only project key will be configured as other settings are available in environment variables.';
-        }
+          message += ' Would you like to create one? You can also configure the extension through VS Code Settings.';
+          const createConfig = await vscode.window.showInformationMessage(
+            message,
+            'Open Settings',
+            'Create project.json',
+            'Cancel'
+          );
 
-        const createConfig = await vscode.window.showInformationMessage(
-          message,
-          'Create Config',
-          'Cancel'
-        );
-
-        if (createConfig === 'Create Config') {
-          try {
-            const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspacePath);
-            const configFileUri = vscode.Uri.file(path.join(workspacePath, '.vscode', 'project.json'));
-            const document = await vscode.workspace.openTextDocument(configFileUri);
-            await vscode.window.showTextDocument(document);
-            if (hasEnvConfig) {
-              outputChannel.appendLine('Default configuration file created with project key only. Other settings will be used from environment variables.');
-            } else {
-              outputChannel.appendLine('Default configuration file created and opened. Please update it with your project settings.');
-            }
-          } catch (err: any) {
-            const msg = 'Failed to create config file: ' + (err.message || 'Unknown error');
-            outputChannel.appendLine(msg);
-            vscode.window.showErrorMessage(msg);
-            quickInfoProvider.updateMeasures([], null);
+          if (createConfig === 'Open Settings') {
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'sonarqubeStatus');
             return;
-          }
-        } else {
-          if (!hasEnvConfig) {
-            outputChannel.appendLine('Configuration file creation cancelled by user and no environment variables found.');
+          } else if (createConfig === 'Create project.json') {
+            try {
+              const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspacePath);
+              const configFileUri = vscode.Uri.file(path.join(workspacePath, '.vscode', 'project.json'));
+              const document = await vscode.workspace.openTextDocument(configFileUri);
+              await vscode.window.showTextDocument(document);
+              outputChannel.appendLine('Default configuration file created and opened. Please update it with your project settings.');
+            } catch (err: any) {
+              const msg = 'Failed to create config file: ' + (err.message || 'Unknown error');
+              outputChannel.appendLine(msg);
+              vscode.window.showErrorMessage(msg);
+              quickInfoProvider.updateMeasures([], null);
+              return;
+            }
+          } else {
+            outputChannel.appendLine('Configuration cancelled by user.');
             quickInfoProvider.updateMeasures([], null);
             return;
           }
@@ -173,6 +214,29 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage(msg, 'Okay');
       }
 
+      if (hasVSCodeConfig) {
+        await updateWorkspaceState('vscode');
+        outputChannel.appendLine('Using VS Code settings for configuration');
+      } else if (configFiles.length > 0) {
+        await updateWorkspaceState('project.json');
+        outputChannel.appendLine('Using project.json for configuration');
+      } else if (hasEnvConfig) {
+        await updateWorkspaceState('env');
+        outputChannel.appendLine('Using environment variables for configuration');
+      }
+
+      // Show configuration source in status bar
+      const configSource = workspaceState?.configSource;
+      if (configSource) {
+        const configLabel = {
+          vscode: 'VS Code Settings',
+          'project.json': 'project.json',
+          env: 'Environment'
+        }[configSource];
+        
+        statusBarItem.tooltip = `SonarQube Status (using ${configLabel})`;
+      }
+
       outputChannel.appendLine(`Using configuration from: ${
         hasEnvConfig ? 
         (configFiles.length > 0 ? 'environment variables and project.json' : 'environment variables') :
@@ -203,6 +267,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
   }
+
+  // Add command to open settings
+  const openSettingsCommand = vscode.commands.registerCommand('sonarqubeStatus.openSettings', () => {
+    vscode.commands.executeCommand('workbench.action.openSettings', 'sonarqubeStatus');
+  });
+  
+  context.subscriptions.push(openSettingsCommand);
 
   // Trigger initial status check on activation
   getStatusWithProgress();
