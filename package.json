@@ -2,7 +2,7 @@
   "name": "sonarqube-status-plus",
   "displayName": "SonarQube Insights for VS Code",
   "description": "Get the status of your project including the Build status, Static code analysis statuses and more... (Maintained fork of sonarqube-status)",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "engines": {
     "vscode": "^1.75.0",
     "node": ">=20"
@@ -148,6 +148,13 @@
     "sonarqube-sdk": "^0.3.0",
     "undici": "^7.3.0"
   },
+  "files": [
+    "dist",
+    "images",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE.md"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/DineshSolanki/vscode-sonarqube-status/issues"

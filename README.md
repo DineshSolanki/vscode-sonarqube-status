@@ -11,6 +11,8 @@ The original project has been inactive since 2022 with several pending issues an
 - Provide timely responses to community contributions
 
 ## Recent Improvements
+See the [CHANGELOG](CHANGELOG.md) for a detailed list of changes.
+
 - Fixed SonarQube API integration issues
 - Added better error logging and debugging
 - Updated dependencies to latest versions
