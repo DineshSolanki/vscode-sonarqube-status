@@ -3,6 +3,7 @@ import { COMMANDS } from './data/constants';
 import { checkAndCreateConfigFileIfNeeded } from './helpers/file.helpers';
 import { getMetrics } from './helpers/sonar.helper';
 import { SonarQuickStatsProvider } from './views/quick-stats.webview';
+import * as path from 'path';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -58,6 +59,9 @@ export function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine('Found SonarQube configuration in environment variables');
       }
 
+      // Normalize workspace path
+      const workspacePath = workspace[0].uri.fsPath;
+
       // Check if the config file exists in .vscode/project.json and prompt user to create it if missing
       const configFiles = await vscode.workspace.findFiles('.vscode/project.json', null, 1);
       if (configFiles.length === 0) {
@@ -76,8 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (createConfig === 'Create Config') {
           try {
-            const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspace[0].uri.path);
-            const configFileUri = vscode.Uri.file(`${workspace[0].uri.path}/.vscode/project.json`);
+            const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspacePath);
+            const configFileUri = vscode.Uri.file(path.join(workspacePath, '.vscode', 'project.json'));
             const document = await vscode.workspace.openTextDocument(configFileUri);
             await vscode.window.showTextDocument(document);
             if (hasEnvConfig) {
@@ -101,9 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }
 
-      const { configured, config } = await checkAndCreateConfigFileIfNeeded(
-        workspace[0].uri.path as string
-      );
+      const { configured, config } = await checkAndCreateConfigFileIfNeeded(workspacePath);
       if (config === null) {
         const msg = 'Please configure the project first!';
         outputChannel.appendLine(msg);
