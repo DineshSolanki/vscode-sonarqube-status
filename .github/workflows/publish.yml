@@ -4,13 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      publish_to_open_vsx:
-        description: 'Publish to OpenVSX Registry'
-        required: true
-        type: boolean
-        default: false
 
 jobs:
   publish:
@@ -43,7 +36,6 @@ jobs:
           registryUrl: https://marketplace.visualstudio.com
           
       - name: Publish to Open VSX Registry
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_to_open_vsx
         uses: HaaLeo/publish-vscode-extension@v1
         with:
           pat: ${{ secrets.OPEN_VSX_TOKEN }}
