@@ -1,8 +1,9 @@
 import { ensureDir, ensureFile, outputJson, readJson } from 'fs-extra';
 import { has, isEmpty } from 'lodash-es';
-import { commands } from 'vscode';
+import { commands, Uri } from 'vscode';
 import { VSCODE_PROJECT_CONFIG, VSCODE_PROJECT_JSON_FORMAT_OPTIONS } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
+import * as path from 'path';
 
 interface EnvConfig {
   sonarURL?: string;
@@ -60,7 +61,7 @@ export const isConfigured = (config: Config) => {
   };
 };
 
-export const createDefaultConfigFile = async (path: string) => {
+export const createDefaultConfigFile = async (filePath: string) => {
   try {
     const envConfig = getEnvConfig();
     interface DefaultConfig {
@@ -82,21 +83,32 @@ export const createDefaultConfigFile = async (path: string) => {
       defaultConfig.token = VSCODE_PROJECT_CONFIG.token;
     }
 
+    // Use VS Code's URI handling to ensure correct path format
+    const uri = Uri.file(filePath);
+    const configPath = path.join(uri.fsPath, '.vscode', 'project.json');
+    const vscodeDir = path.join(uri.fsPath, '.vscode');
+    
+    // Ensure the .vscode directory exists
+    await ensureDir(vscodeDir);
+    
     await outputJson(
-      `${path}/.vscode/project.json`,
+      configPath,
       defaultConfig,
       VSCODE_PROJECT_JSON_FORMAT_OPTIONS
     );
     return defaultConfig;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to create config file');
+    throw new Error(`Failed to create config file: ${error.message}`);
   }
 };
 
-export const getConfigFile = async (path: string) => {
+export const getConfigFile = async (filePath: string) => {
   try {
-    await ensureFile(`${path}/.vscode/project.json`);
-    const config = await readJson(`${path}/.vscode/project.json`);
+    const uri = Uri.file(filePath);
+    const configPath = path.join(uri.fsPath, '.vscode', 'project.json');
+    
+    await ensureFile(configPath);
+    const config = await readJson(configPath);
     const configured = config && isConfigured(config);
     commands.executeCommand('setContext', 'sonarqube-status.isConfigured', configured);
     return { configured, config };
@@ -106,21 +118,24 @@ export const getConfigFile = async (path: string) => {
   }
 };
 
-export const checkAndCreateConfigFileIfNeeded = async (path: string) => {
+export const checkAndCreateConfigFileIfNeeded = async (filePath: string) => {
   try {
-    await ensureDir(`${path}/.vscode`);
+    const uri = Uri.file(filePath);
+    const vscodeDir = path.join(uri.fsPath, '.vscode');
+    await ensureDir(vscodeDir);
+    
     let config = null;
     let configured = false;
-    const configResult = await getConfigFile(path);
+    const configResult = await getConfigFile(filePath);
     if (!configResult.configured) {
-      config = await createDefaultConfigFile(path);
+      config = await createDefaultConfigFile(filePath);
     } else {
       config = configResult.config;
       configured = configResult.configured;
     }
     commands.executeCommand('setContext', 'sonarqube-status.isConfigured', configResult);
     return { configured, config };
-  } catch (error) {
-    throw new Error('Failed to configure');
+  } catch (error: any) {
+    throw new Error(`Failed to configure: ${error.message}`);
   }
 };
