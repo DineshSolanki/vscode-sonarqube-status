@@ -4,29 +4,28 @@ import { commands } from 'vscode';
 import { VSCODE_PROJECT_CONFIG, VSCODE_PROJECT_JSON_FORMAT_OPTIONS } from '../data/constants';
 import { Config } from '../interfaces/config.interface';
 
+interface EnvConfig {
+  sonarURL?: string;
+  token?: string;
+}
+
+function getEnvConfig(): EnvConfig {
+  return {
+    sonarURL: process.env.SONAR_HOST_URL,
+    token: process.env.SONAR_TOKEN
+  };
+}
+
 export function getIsAuthConfigured(config: Config) {
-  let isAuthConfigured = true;
-  let isPasswordBasedConfigured = false;
-  let isTokenBasedConfigured = false;
-
-  if (has(config, 'auth') && !isEmpty(config.auth)) {
-    const isAuthUsernameConfigured =
-      has(config.auth, 'username') &&
-      !isEmpty(config.auth?.username) &&
-      !config.auth?.username?.includes('sonar-username');
-    const isAuthPasswordConfigured =
-      has(config.auth, 'password') &&
-      !isEmpty(config.auth?.password) &&
-      !config.auth?.password?.includes('sonar-password');
-    isTokenBasedConfigured =
-      has(config.auth, 'token') &&
-      !isEmpty(config.auth?.token) &&
-      !config.auth?.token?.includes('sonar-token');
-
-    isPasswordBasedConfigured = isAuthUsernameConfigured && isAuthPasswordConfigured;
-    isAuthConfigured = isPasswordBasedConfigured || isTokenBasedConfigured;
+  const envConfig = getEnvConfig();
+  
+  // Check file-based token first
+  if (has(config, 'token') && config.token && !isEmpty(config.token) && !config.token?.includes('sonar-token')) {
+    return { isAuthConfigured: true };
   }
-  return { isAuthConfigured, type: isTokenBasedConfigured ? 'token' : 'password' };
+
+  // Only check environment variable if no token in config
+  return { isAuthConfigured: !isEmpty(envConfig.token) };
 }
 
 function getIsProjectKeyConfigured(config: Config) {
@@ -36,34 +35,59 @@ function getIsProjectKeyConfigured(config: Config) {
 }
 
 function getSonarURLConfigured(config: Config) {
-  return (
-    has(config, 'sonarURL') &&
-    !isEmpty(config.sonarURL) &&
-    !config.sonarURL.includes('your-sonar-url')
-  );
+  const envConfig = getEnvConfig();
+  
+  // If sonarURL exists in project.json, only validate that
+  if (has(config, 'sonarURL')) {
+    return !isEmpty(config.sonarURL) &&
+           config.sonarURL &&
+           !config.sonarURL.includes('your-sonar-url');
+  }
+  
+  // Only check env var if no sonarURL in project.json
+  return !isEmpty(envConfig.sonarURL);
 }
 
 export const isConfigured = (config: Config) => {
   const isProjectKeyConfigured = getIsProjectKeyConfigured(config);
   const isSonarURLConfigured = getSonarURLConfigured(config);
-  const { isAuthConfigured, type } = getIsAuthConfigured(config);
+  const { isAuthConfigured } = getIsAuthConfigured(config);
   return {
     isConfigured: isProjectKeyConfigured && isSonarURLConfigured && isAuthConfigured,
     isProjectKeyConfigured,
     isSonarURLConfigured,
-    isAuthConfigured,
-    authType: type,
+    isAuthConfigured
   };
 };
 
 export const createDefaultConfigFile = async (path: string) => {
   try {
+    const envConfig = getEnvConfig();
+    interface DefaultConfig {
+      project: string;
+      sonarURL?: string;
+      token?: string;
+    }
+
+    const defaultConfig: DefaultConfig = {
+      project: VSCODE_PROJECT_CONFIG.project
+    };
+
+    // Only include sonarURL and token if env vars are not present
+    if (!envConfig.sonarURL && VSCODE_PROJECT_CONFIG.sonarURL) {
+      defaultConfig.sonarURL = VSCODE_PROJECT_CONFIG.sonarURL;
+    }
+    
+    if (!envConfig.token && VSCODE_PROJECT_CONFIG.token) {
+      defaultConfig.token = VSCODE_PROJECT_CONFIG.token;
+    }
+
     await outputJson(
       `${path}/.vscode/project.json`,
-      VSCODE_PROJECT_CONFIG,
+      defaultConfig,
       VSCODE_PROJECT_JSON_FORMAT_OPTIONS
     );
-    return VSCODE_PROJECT_CONFIG;
+    return defaultConfig;
   } catch (error) {
     throw new Error('Failed to create config file');
   }

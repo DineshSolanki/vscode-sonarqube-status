@@ -4,7 +4,7 @@ This extension is a maintained fork of [SonarQube Project Status](https://github
 
 ## Why this fork?
 
-The original project has been inactive since 2021 with several pending issues and pull requests. This fork aims to:
+The original project has been inactive since 2022 with several pending issues and pull requests. This fork aims to:
 - Maintain active development and support
 - Fix existing bugs and issues
 - Add new features and improvements
@@ -35,31 +35,36 @@ The original project has been inactive since 2021 with several pending issues an
    ```
    SonarQube: Get Report
    ```
-3. This will create a `project.json` file in `.vscode` folder
-4. Update the configuration:
+3. Configure SonarQube settings using one of the following methods:
 
-### Using Password Authentication
+### Using project.json Configuration (Takes Precedence)
+
+Create `.vscode/project.json` with your configuration:
+
 ```json
 {
   "project": "your_project_key",
   "sonarURL": "https://your.sonarqube.url",
-  "auth": {
-    "username": "your_username",
-    "password": "your_password"
-  }
+  "token": "your_token"
 }
 ```
 
-### Using Token Authentication
+You can also use a minimal configuration and let environment variables handle the rest:
 ```json
 {
-  "project": "your_project_key",
-  "sonarURL": "https://your.sonarqube.url",
-  "auth": {
-    "token": "your_token"
-  }
+  "project": "your_project_key"
 }
 ```
+
+### Using Environment Variables (Fallback)
+
+Set the following environment variables:
+```bash
+SONAR_HOST_URL=https://your.sonarqube.url
+SONAR_TOKEN=your_token
+```
+
+**Note**: Configuration in project.json takes precedence over environment variables. Environment variables are only used for settings not defined in project.json.
 
 ## Development
 

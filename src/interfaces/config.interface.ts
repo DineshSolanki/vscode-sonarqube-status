@@ -1,11 +1,5 @@
-interface AuthConfig {
-  token?: string;
-  username?: string;
-  password?: string;
-}
-
 export interface Config {
   project: string;
-  sonarURL: string;
-  auth?: AuthConfig;
+  sonarURL?: string;  // Optional since it can come from env vars
+  token?: string;     // Optional since it can come from env vars
 }

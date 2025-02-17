@@ -6,6 +6,20 @@ import { SonarQuickStatsProvider } from './views/quick-stats.webview';
 
 let outputChannel: vscode.OutputChannel;
 
+async function checkEnvironmentVariables() {
+  const envVars = {
+    sonarURL: process.env.SONAR_HOST_URL,
+    token: process.env.SONAR_TOKEN,
+    username: process.env.SONAR_USERNAME,
+    password: process.env.SONAR_PASSWORD
+  };
+  
+  return {
+    hasEnvConfig: !!envVars.sonarURL && (!!envVars.token || (!!envVars.username && !!envVars.password)),
+    envVars
+  };
+}
+
 export function activate(context: vscode.ExtensionContext) {
   // Create and show output channel immediately
   outputChannel = vscode.window.createOutputChannel('SonarQube Status');
@@ -38,21 +52,39 @@ export function activate(context: vscode.ExtensionContext) {
     if (workspace) {
       outputChannel.appendLine('Checking configuration...');
 
+      // Check environment variables first
+      const { hasEnvConfig, envVars } = await checkEnvironmentVariables();
+      if (hasEnvConfig) {
+        outputChannel.appendLine('Found SonarQube configuration in environment variables');
+      }
+
       // Check if the config file exists in .vscode/project.json and prompt user to create it if missing
       const configFiles = await vscode.workspace.findFiles('.vscode/project.json', null, 1);
       if (configFiles.length === 0) {
+        let message = 'No project configuration file found.';
+        if (!hasEnvConfig) {
+          message += ' Would you like to create one?';
+        } else {
+          message += ' Only project key will be configured as other settings are available in environment variables.';
+        }
+
         const createConfig = await vscode.window.showInformationMessage(
-          'No project configuration file found. Would you like to create a default one?',
+          message,
           'Create Config',
           'Cancel'
         );
+
         if (createConfig === 'Create Config') {
           try {
             const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspace[0].uri.path);
             const configFileUri = vscode.Uri.file(`${workspace[0].uri.path}/.vscode/project.json`);
             const document = await vscode.workspace.openTextDocument(configFileUri);
             await vscode.window.showTextDocument(document);
-            outputChannel.appendLine('Default configuration file created and opened. Please update it with your project settings.');
+            if (hasEnvConfig) {
+              outputChannel.appendLine('Default configuration file created with project key only. Other settings will be used from environment variables.');
+            } else {
+              outputChannel.appendLine('Default configuration file created and opened. Please update it with your project settings.');
+            }
           } catch (err: any) {
             const msg = 'Failed to create config file: ' + (err.message || 'Unknown error');
             outputChannel.appendLine(msg);
@@ -61,9 +93,11 @@ export function activate(context: vscode.ExtensionContext) {
             return;
           }
         } else {
-          outputChannel.appendLine('Configuration file creation cancelled by user.');
-          quickInfoProvider.updateMeasures([], null);
-          return;
+          if (!hasEnvConfig) {
+            outputChannel.appendLine('Configuration file creation cancelled by user and no environment variables found.');
+            quickInfoProvider.updateMeasures([], null);
+            return;
+          }
         }
       }
 
@@ -136,6 +170,12 @@ export function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine(msg);
         vscode.window.showErrorMessage(msg, 'Okay');
       }
+
+      outputChannel.appendLine(`Using configuration from: ${
+        hasEnvConfig ? 
+        (configFiles.length > 0 ? 'environment variables and project.json' : 'environment variables') :
+        'project.json'
+      }`);
     } 
     else {
       const msg = 'No workspace found. Please open a workspace to use this extension.';
