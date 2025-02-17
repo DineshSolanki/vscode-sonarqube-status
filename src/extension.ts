@@ -37,6 +37,36 @@ export function activate(context: vscode.ExtensionContext) {
     const workspace = vscode.workspace.workspaceFolders;
     if (workspace) {
       outputChannel.appendLine('Checking configuration...');
+
+      // Check if the config file exists in .vscode/project.json and prompt user to create it if missing
+      const configFiles = await vscode.workspace.findFiles('.vscode/project.json', null, 1);
+      if (configFiles.length === 0) {
+        const createConfig = await vscode.window.showInformationMessage(
+          'No project configuration file found. Would you like to create a default one?',
+          'Create Config',
+          'Cancel'
+        );
+        if (createConfig === 'Create Config') {
+          try {
+            const config = await require('./helpers/file.helpers').createDefaultConfigFile(workspace[0].uri.path);
+            const configFileUri = vscode.Uri.file(`${workspace[0].uri.path}/.vscode/project.json`);
+            const document = await vscode.workspace.openTextDocument(configFileUri);
+            await vscode.window.showTextDocument(document);
+            outputChannel.appendLine('Default configuration file created and opened. Please update it with your project settings.');
+          } catch (err: any) {
+            const msg = 'Failed to create config file: ' + (err.message || 'Unknown error');
+            outputChannel.appendLine(msg);
+            vscode.window.showErrorMessage(msg);
+            quickInfoProvider.updateMeasures([], null);
+            return;
+          }
+        } else {
+          outputChannel.appendLine('Configuration file creation cancelled by user.');
+          quickInfoProvider.updateMeasures([], null);
+          return;
+        }
+      }
+
       const { configured, config } = await checkAndCreateConfigFileIfNeeded(
         workspace[0].uri.path as string
       );
@@ -44,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
         const msg = 'Please configure the project first!';
         outputChannel.appendLine(msg);
         vscode.window.showErrorMessage(msg, 'Okay');
+        quickInfoProvider.updateMeasures([], null);
         return;
       }
       if (configured) {
@@ -105,6 +136,12 @@ export function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine(msg);
         vscode.window.showErrorMessage(msg, 'Okay');
       }
+    } 
+    else {
+      const msg = 'No workspace found. Please open a workspace to use this extension.';
+      outputChannel.appendLine(msg);
+      vscode.window.showErrorMessage(msg, 'Okay');
+      quickInfoProvider.updateMeasures([], null);
     }
   }
 
